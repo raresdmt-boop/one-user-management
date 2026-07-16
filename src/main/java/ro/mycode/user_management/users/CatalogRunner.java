@@ -25,5 +25,7 @@ public class CatalogRunner implements CommandLineRunner {
 //        userRepository.deleteByEmail("bogdan.alexandrescu@gmail.com");
 
         System.out.println(userRepository.findByEmailAndPassword("cristian.tudor@gmail.com", "parola123"));
+        System.out.println(userRepository.findAdultUsers(18));
+        System.out.println(userRepository.findByEmailNative("cristian.tudor@gmail.com"));
     }
 }
