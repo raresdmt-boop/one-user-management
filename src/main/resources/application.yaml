@@ -7,9 +7,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+    open-in-view: false
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
+  jackson:
+    default-property-inclusion: non_null
 
+server:
+  port: 8080
