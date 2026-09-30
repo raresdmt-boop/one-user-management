@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.context.TestComponent;
 import org.springframework.context.annotation.Import;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -13,7 +14,6 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -163,6 +163,7 @@ class GlobalExceptionHandlerTest {
     }
 }
 
+@TestComponent
 @RestController
 @RequestMapping("/probe")
 class ProbeController {
@@ -220,7 +221,7 @@ class ProbeController {
     }
 }
 
-@Service
+@TestComponent
 @Validated
 class ProbeService {
 
