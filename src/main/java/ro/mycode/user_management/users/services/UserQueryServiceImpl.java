@@ -9,7 +9,6 @@ import ro.mycode.user_management.users.dtos.PageResponse;
 import ro.mycode.user_management.users.dtos.UserResponse;
 import ro.mycode.user_management.users.dtos.UserSummary;
 import ro.mycode.user_management.users.exceptions.EmailNotFound;
-import ro.mycode.user_management.users.exceptions.NoUsersFound;
 import ro.mycode.user_management.users.exceptions.UserIdNotFound;
 import ro.mycode.user_management.users.models.User;
 import ro.mycode.user_management.users.repository.UserRepository;
@@ -118,11 +117,7 @@ public class UserQueryServiceImpl implements UserQueryService {
 
     @Override
     public Double getAverageAge() {
-        Double average = userRepository.findAverageAge();
-        if (average == null) {
-            throw new NoUsersFound();
-        }
-        return average;
+        return userRepository.findAverageAge();
     }
 
     private List<UserResponse> toResponses(List<User> users) {

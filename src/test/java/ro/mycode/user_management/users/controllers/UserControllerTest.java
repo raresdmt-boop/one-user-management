@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
@@ -16,18 +14,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ro.mycode.user_management.support.UserFixtures;
 import ro.mycode.user_management.users.dtos.ChangePasswordRequest;
-import ro.mycode.user_management.users.dtos.ChangePasswordResponse;
 import ro.mycode.user_management.users.dtos.PageResponse;
 import ro.mycode.user_management.users.dtos.UserCreateRequest;
-import ro.mycode.user_management.users.dtos.UserCreateResponse;
-import ro.mycode.user_management.users.dtos.UserDeleteResponse;
 import ro.mycode.user_management.users.dtos.UserResponse;
 import ro.mycode.user_management.users.dtos.UserSummary;
 import ro.mycode.user_management.users.dtos.UserUpdateRequest;
-import ro.mycode.user_management.users.dtos.UserUpdateResponse;
 import ro.mycode.user_management.users.exceptions.EmailAlreadyUsed;
 import ro.mycode.user_management.users.exceptions.EmailNotFound;
-import ro.mycode.user_management.users.exceptions.NoUsersFound;
 import ro.mycode.user_management.users.exceptions.UserIdNotFound;
 import ro.mycode.user_management.users.models.User;
 import ro.mycode.user_management.users.services.interfaces.UserCommandService;
@@ -46,6 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -90,8 +84,7 @@ class UserControllerTest {
         @DisplayName("intoarce 201, corpul creat si header-ul Location")
         void validRequest_returns201WithLocation() throws Exception {
             // Arrange
-            when(userCommandService.addUser(any()))
-                    .thenReturn(new UserCreateResponse(ID, "Cristian", "Tudor", "cristian.tudor@gmail.com", 30));
+            when(userCommandService.addUser(any())).thenReturn(cristian());
 
             // Act & Assert
             mockMvc.perform(post("/api/users")
@@ -109,8 +102,7 @@ class UserControllerTest {
         @DisplayName("trimite serviciului exact datele din corpul cererii")
         void forwardsRequestBodyToService() throws Exception {
             // Arrange
-            when(userCommandService.addUser(any()))
-                    .thenReturn(new UserCreateResponse(ID, "Cristian", "Tudor", "cristian.tudor@gmail.com", 30));
+            when(userCommandService.addUser(any())).thenReturn(cristian());
             ArgumentCaptor<UserCreateRequest> captor = ArgumentCaptor.forClass(UserCreateRequest.class);
 
             // Act
@@ -566,15 +558,15 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("average-age pe baza goala intoarce 404")
-        void averageAge_noUsers_returns404() throws Exception {
+        @DisplayName("average-age pe baza goala intoarce 200 cu null, la fel ca lista goala")
+        void averageAge_noUsers_returns200WithNull() throws Exception {
             // Arrange
-            when(userQueryService.getAverageAge()).thenThrow(new NoUsersFound());
+            when(userQueryService.getAverageAge()).thenReturn(null);
 
             // Act & Assert
             mockMvc.perform(get("/api/users/average-age"))
-                    .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value("No users found"));
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("{\"averageAge\":null}"));
         }
 
         private UserSummary summaryOf(UserResponse response) {
@@ -598,19 +590,19 @@ class UserControllerTest {
     }
 
     @Nested
-    @DisplayName("PUT si DELETE /api/users/{id}")
+    @DisplayName("PATCH, PUT parola si DELETE /api/users/{id}")
     class Write {
 
         @Test
-        @DisplayName("update intoarce 200 si userul modificat")
-        void update_returns200() throws Exception {
+        @DisplayName("PATCH intoarce 200 si userul modificat")
+        void patch_returns200() throws Exception {
             // Arrange
             UserUpdateRequest request = new UserUpdateRequest("Radu", null, null, 41);
             when(userCommandService.updateUser(eq(ID), any()))
-                    .thenReturn(new UserUpdateResponse(ID, "Radu", "Tudor", "cristian.tudor@gmail.com", 41));
+                    .thenReturn(new UserResponse(ID, "Radu", "Tudor", "cristian.tudor@gmail.com", 41));
 
             // Act & Assert
-            mockMvc.perform(put("/api/users/{id}", ID)
+            mockMvc.perform(patch("/api/users/{id}", ID)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -619,36 +611,47 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("update pe un id inexistent intoarce 404")
-        void update_unknownId_returns404() throws Exception {
+        @DisplayName("PUT pe /{id} nu mai exista: update-ul partial se face cu PATCH")
+        void put_onUser_isNotAllowed() throws Exception {
+            // Act & Assert
+            mockMvc.perform(put("/api/users/{id}", ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"firstName\":\"Radu\"}"))
+                    .andExpect(status().isMethodNotAllowed());
+            verify(userCommandService, never()).updateUser(any(), any());
+        }
+
+        @Test
+        @DisplayName("PATCH pe un id inexistent intoarce 404")
+        void patch_unknownId_returns404() throws Exception {
             // Arrange
             when(userCommandService.updateUser(eq(ID), any())).thenThrow(new UserIdNotFound());
 
             // Act & Assert
-            mockMvc.perform(put("/api/users/{id}", ID)
+            mockMvc.perform(patch("/api/users/{id}", ID)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{}"))
                     .andExpect(status().isNotFound());
         }
 
         @Test
-        @DisplayName("update cu email deja folosit intoarce 409")
-        void update_duplicateEmail_returns409() throws Exception {
+        @DisplayName("PATCH cu email deja folosit intoarce 409")
+        void patch_duplicateEmail_returns409() throws Exception {
             // Arrange
             when(userCommandService.updateUser(eq(ID), any())).thenThrow(new EmailAlreadyUsed());
 
             // Act & Assert
-            mockMvc.perform(put("/api/users/{id}", ID)
+            mockMvc.perform(patch("/api/users/{id}", ID)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"email\":\"ocupat@gmail.com\"}"))
                     .andExpect(status().isConflict());
         }
 
         @Test
-        @DisplayName("update cu varsta invalida intoarce 400 fara sa atinga serviciul")
-        void update_invalidAge_returns400() throws Exception {
+        @DisplayName("PATCH cu varsta invalida intoarce 400 fara sa atinga serviciul")
+        void patch_invalidAge_returns400() throws Exception {
             // Act & Assert
-            mockMvc.perform(put("/api/users/{id}", ID)
+            mockMvc.perform(patch("/api/users/{id}", ID)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"age\":0}"))
                     .andExpect(status().isBadRequest())
@@ -657,33 +660,32 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("un corp gol este acceptat: update-ul este partial")
-        void update_emptyBody_isAccepted() throws Exception {
+        @DisplayName("un corp gol este acceptat: PATCH-ul este partial prin definitie")
+        void patch_emptyBody_isAccepted() throws Exception {
             // Arrange
-            when(userCommandService.updateUser(eq(ID), any()))
-                    .thenReturn(new UserUpdateResponse(ID, "Cristian", "Tudor", "cristian.tudor@gmail.com", 30));
+            when(userCommandService.updateUser(eq(ID), any())).thenReturn(cristian());
 
             // Act & Assert
-            mockMvc.perform(put("/api/users/{id}", ID)
+            mockMvc.perform(patch("/api/users/{id}", ID)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{}"))
                     .andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("schimbarea parolei intoarce 200 si numarul de linii afectate")
-        void changePassword_returns200() throws Exception {
+        @DisplayName("schimbarea parolei intoarce 200 si userul, fara parola in corp")
+        void changePassword_returns200WithUser() throws Exception {
             // Arrange
-            when(userCommandService.changePassword(eq(ID), any()))
-                    .thenReturn(new ChangePasswordResponse(ID, "cristian.tudor@gmail.com", 1));
+            when(userCommandService.changePassword(eq(ID), any())).thenReturn(cristian());
 
             // Act & Assert
             mockMvc.perform(put("/api/users/{id}/password", ID)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(new ChangePasswordRequest("parolaNoua1"))))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(ID.toString()))
                     .andExpect(jsonPath("$.email").value("cristian.tudor@gmail.com"))
-                    .andExpect(jsonPath("$.updatedRows").value(1));
+                    .andExpect(jsonPath("$.password").doesNotExist());
         }
 
         @Test
@@ -713,18 +715,17 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("delete intoarce 200 si datele userului sters")
+        @DisplayName("delete intoarce 200 si reprezentarea userului sters")
         void delete_returns200WithDeletedUser() throws Exception {
             // Arrange
-            when(userCommandService.deleteUser(ID))
-                    .thenReturn(new UserDeleteResponse(ID, "Cristian", "Tudor", "cristian.tudor@gmail.com"));
+            when(userCommandService.deleteUser(ID)).thenReturn(cristian());
 
             // Act & Assert
             mockMvc.perform(delete("/api/users/{id}", ID))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(ID.toString()))
                     .andExpect(jsonPath("$.email").value("cristian.tudor@gmail.com"))
-                    .andExpect(jsonPath("$.age").doesNotExist());
+                    .andExpect(jsonPath("$.age").value(30));
         }
 
         @Test

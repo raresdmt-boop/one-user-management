@@ -16,7 +16,6 @@ import ro.mycode.user_management.users.dtos.UserResponse;
 import ro.mycode.user_management.users.dtos.UserSummary;
 import ro.mycode.user_management.users.exceptions.EmailNotFound;
 import ro.mycode.user_management.users.exceptions.ExceptionConstants;
-import ro.mycode.user_management.users.exceptions.NoUsersFound;
 import ro.mycode.user_management.users.exceptions.UserIdNotFound;
 import ro.mycode.user_management.users.models.User;
 import ro.mycode.user_management.users.repository.UserRepository;
@@ -312,14 +311,12 @@ class UserQueryServiceImplTest {
     }
 
     @Test
-    @DisplayName("getAverageAge arunca NoUsersFound cand agregarea intoarce null")
-    void getAverageAge_throwsNoUsersFound_whenAggregateIsNull() {
+    @DisplayName("getAverageAge intoarce null pe baza goala: lipsa datelor nu este o eroare")
+    void getAverageAge_returnsNull_whenAggregateIsNull() {
         // Arrange
         when(userRepository.findAverageAge()).thenReturn(null);
 
         // Act & Assert
-        assertThatThrownBy(() -> service.getAverageAge())
-                .isInstanceOf(NoUsersFound.class)
-                .hasMessage(ExceptionConstants.NO_USERS_FOUND);
+        assertThat(service.getAverageAge()).isNull();
     }
 }

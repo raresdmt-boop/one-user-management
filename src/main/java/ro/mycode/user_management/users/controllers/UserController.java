@@ -8,9 +8,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -19,27 +19,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
+import ro.mycode.user_management.users.dtos.AverageAgeResponse;
 import ro.mycode.user_management.users.dtos.ChangePasswordRequest;
-import ro.mycode.user_management.users.dtos.ChangePasswordResponse;
+import ro.mycode.user_management.users.dtos.EmailExistsResponse;
 import ro.mycode.user_management.users.dtos.PageResponse;
+import ro.mycode.user_management.users.dtos.UserCountResponse;
 import ro.mycode.user_management.users.dtos.UserCreateRequest;
-import ro.mycode.user_management.users.dtos.UserCreateResponse;
-import ro.mycode.user_management.users.dtos.UserDeleteResponse;
 import ro.mycode.user_management.users.dtos.UserResponse;
 import ro.mycode.user_management.users.dtos.UserSummary;
 import ro.mycode.user_management.users.dtos.UserUpdateRequest;
-import ro.mycode.user_management.users.dtos.UserUpdateResponse;
 import ro.mycode.user_management.users.services.interfaces.UserCommandService;
 import ro.mycode.user_management.users.services.interfaces.UserQueryService;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
-@Validated
 public class UserController {
 
     private final UserCommandService userCommandService;
@@ -51,10 +48,10 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<UserCreateResponse> create(@Valid @RequestBody UserCreateRequest request,
-                                                     UriComponentsBuilder uriBuilder) {
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserCreateRequest request,
+                                               UriComponentsBuilder uriBuilder) {
 
-        UserCreateResponse created = userCommandService.addUser(request);
+        UserResponse created = userCommandService.addUser(request);
 
         URI location = uriBuilder.path("/api/users/{id}").buildAndExpand(created.id()).toUri();
 
@@ -148,38 +145,37 @@ public class UserController {
     }
 
     @GetMapping("/exists")
-    public ResponseEntity<Map<String, Object>> emailExists(@RequestParam String email) {
-        return ResponseEntity.ok(Map.of("email", email, "exists", userQueryService.emailExists(email)));
+    public ResponseEntity<EmailExistsResponse> emailExists(@RequestParam String email) {
+        return ResponseEntity.ok(new EmailExistsResponse(email, userQueryService.emailExists(email)));
     }
 
     @GetMapping("/count")
-    public ResponseEntity<Map<String, Object>> countYoungerThan(@RequestParam int youngerThan) {
-        return ResponseEntity.ok(Map.of(
-                "youngerThan", youngerThan,
-                "count", userQueryService.countUsersYoungerThan(youngerThan)));
+    public ResponseEntity<UserCountResponse> countYoungerThan(@RequestParam int youngerThan) {
+        return ResponseEntity.ok(
+                new UserCountResponse(youngerThan, userQueryService.countUsersYoungerThan(youngerThan)));
     }
 
     @GetMapping("/average-age")
-    public ResponseEntity<Map<String, Object>> averageAge() {
-        return ResponseEntity.ok(Map.of("averageAge", userQueryService.getAverageAge()));
+    public ResponseEntity<AverageAgeResponse> averageAge() {
+        return ResponseEntity.ok(new AverageAgeResponse(userQueryService.getAverageAge()));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<UserUpdateResponse> update(@PathVariable UUID id,
-                                                     @Valid @RequestBody UserUpdateRequest request) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<UserResponse> update(@PathVariable UUID id,
+                                               @Valid @RequestBody UserUpdateRequest request) {
 
         return ResponseEntity.ok(userCommandService.updateUser(id, request));
     }
 
     @PutMapping("/{id}/password")
-    public ResponseEntity<ChangePasswordResponse> changePassword(@PathVariable UUID id,
-                                                                 @Valid @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<UserResponse> changePassword(@PathVariable UUID id,
+                                                       @Valid @RequestBody ChangePasswordRequest request) {
 
         return ResponseEntity.ok(userCommandService.changePassword(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<UserDeleteResponse> delete(@PathVariable UUID id) {
+    public ResponseEntity<UserResponse> delete(@PathVariable UUID id) {
         return ResponseEntity.ok(userCommandService.deleteUser(id));
     }
 }

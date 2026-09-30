@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 import ro.mycode.user_management.users.dtos.UserCreateRequest;
 import ro.mycode.user_management.users.exceptions.EmailAlreadyUsed;
 import ro.mycode.user_management.users.exceptions.EmailNotFound;
-import ro.mycode.user_management.users.exceptions.NoUsersFound;
 import ro.mycode.user_management.users.exceptions.UserIdNotFound;
 
 import java.util.HashSet;
@@ -65,15 +64,6 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/probe/email-not-found"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Email not found"));
-    }
-
-    @Test
-    @DisplayName("NoUsersFound devine 404")
-    void noUsersFound_becomes404() throws Exception {
-        // Act & Assert
-        mockMvc.perform(get("/probe/no-users-found"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("No users found"));
     }
 
     @Test
@@ -191,11 +181,6 @@ class ProbeController {
     @GetMapping("/email-not-found")
     void emailNotFound() {
         throw new EmailNotFound();
-    }
-
-    @GetMapping("/no-users-found")
-    void noUsersFound() {
-        throw new NoUsersFound();
     }
 
     @GetMapping("/email-already-used")

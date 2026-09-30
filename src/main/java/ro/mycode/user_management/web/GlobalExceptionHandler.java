@@ -16,7 +16,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import ro.mycode.user_management.users.exceptions.EmailAlreadyUsed;
 import ro.mycode.user_management.users.exceptions.EmailNotFound;
-import ro.mycode.user_management.users.exceptions.NoUsersFound;
 import ro.mycode.user_management.users.exceptions.UserIdNotFound;
 
 import java.time.Instant;
@@ -25,7 +24,7 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({UserIdNotFound.class, EmailNotFound.class, NoUsersFound.class})
+    @ExceptionHandler({UserIdNotFound.class, EmailNotFound.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException exception, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, exception.getMessage(), request, List.of());
     }

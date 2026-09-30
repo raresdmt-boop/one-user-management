@@ -21,8 +21,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -90,7 +92,7 @@ class UserApiIntegrationTest {
                     .andExpect(jsonPath("$.email").value("cristian.tudor@gmail.com"))
                     .andExpect(jsonPath("$.age").value(30));
 
-            mockMvc.perform(put("/api/users/{id}", id)
+            mockMvc.perform(patch("/api/users/{id}", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"firstName\":\"Cristi\",\"age\":31}"))
                     .andExpect(status().isOk())
@@ -106,7 +108,8 @@ class UserApiIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"newPassword\":\"parolaNoua1\"}"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.updatedRows").value(1));
+                    .andExpect(jsonPath("$.email").value("cristian.tudor@gmail.com"))
+                    .andExpect(jsonPath("$.password").doesNotExist());
 
             assertThat(userRepository.findById(UUID.fromString(id)).orElseThrow().getPassword())
                     .isEqualTo("parolaNoua1");
@@ -128,7 +131,7 @@ class UserApiIntegrationTest {
             UUID id = createCristian();
 
             // Act
-            mockMvc.perform(put("/api/users/{id}", id)
+            mockMvc.perform(patch("/api/users/{id}", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"email\":\"cristi.tudor@gmail.com\"}"))
                     .andExpect(status().isOk());
@@ -171,7 +174,7 @@ class UserApiIntegrationTest {
                     "Radu", "Popescu", "radu.popescu@gmail.com", "parola123", 17));
 
             // Act & Assert
-            mockMvc.perform(put("/api/users/{id}", cristianId)
+            mockMvc.perform(patch("/api/users/{id}", cristianId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"email\":\"radu.popescu@gmail.com\"}"))
                     .andExpect(status().isConflict());
@@ -185,7 +188,7 @@ class UserApiIntegrationTest {
 
             // Act & Assert
             mockMvc.perform(get("/api/users/{id}", missing)).andExpect(status().isNotFound());
-            mockMvc.perform(put("/api/users/{id}", missing)
+            mockMvc.perform(patch("/api/users/{id}", missing)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"firstName\":\"X\"}")).andExpect(status().isNotFound());
             mockMvc.perform(put("/api/users/{id}/password", missing)
@@ -195,12 +198,12 @@ class UserApiIntegrationTest {
         }
 
         @Test
-        @DisplayName("average-age intoarce 404 pe baza goala si media pe baza populata")
+        @DisplayName("average-age intoarce 200 cu null pe baza goala si media pe baza populata")
         void averageAge_dependsOnData() throws Exception {
             // Act & Assert
             mockMvc.perform(get("/api/users/average-age"))
-                    .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value("No users found"));
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("{\"averageAge\":null}"));
 
             userCommandService.addUser(new UserCreateRequest("A", "A", "a@gmail.com", "parola123", 20));
             userCommandService.addUser(new UserCreateRequest("B", "B", "b@gmail.com", "parola123", 30));

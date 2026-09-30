@@ -18,7 +18,7 @@ public final class UserFixtures {
         return new User(firstName, lastName, email, VALID_PASSWORD, age);
     }
 
-    public static User withId(UUID id, User user) {
+    private static User withId(UUID id, User user) {
         ReflectionTestUtils.setField(user, "id", id);
         return user;
     }

@@ -4,12 +4,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import ro.mycode.user_management.users.dtos.ChangePasswordRequest;
-import ro.mycode.user_management.users.dtos.ChangePasswordResponse;
 import ro.mycode.user_management.users.dtos.UserCreateRequest;
-import ro.mycode.user_management.users.dtos.UserCreateResponse;
-import ro.mycode.user_management.users.dtos.UserDeleteResponse;
+import ro.mycode.user_management.users.dtos.UserResponse;
 import ro.mycode.user_management.users.dtos.UserUpdateRequest;
-import ro.mycode.user_management.users.dtos.UserUpdateResponse;
 import ro.mycode.user_management.users.exceptions.EmailAlreadyUsed;
 import ro.mycode.user_management.users.exceptions.UserIdNotFound;
 import ro.mycode.user_management.users.models.User;
@@ -30,7 +27,7 @@ public class UserCommandServiceImpl implements UserCommandService {
 
     @Override
     @Transactional
-    public UserCreateResponse addUser(UserCreateRequest userCreateRequest) {
+    public UserResponse addUser(UserCreateRequest userCreateRequest) {
 
         if (userRepository.existsByEmail(userCreateRequest.email())) {
             throw new EmailAlreadyUsed();
@@ -43,19 +40,12 @@ public class UserCommandServiceImpl implements UserCommandService {
                 userCreateRequest.password(),
                 userCreateRequest.age());
 
-        User saved = userRepository.save(newUser);
-
-        return new UserCreateResponse(
-                saved.getId(),
-                saved.getFirstName(),
-                saved.getLastName(),
-                saved.getEmail(),
-                saved.getAge());
+        return UserResponse.from(userRepository.save(newUser));
     }
 
     @Override
     @Transactional
-    public UserUpdateResponse updateUser(UUID id, UserUpdateRequest userUpdateRequest) {
+    public UserResponse updateUser(UUID id, UserUpdateRequest userUpdateRequest) {
 
         User user = userRepository.findById(id).orElseThrow(UserIdNotFound::new);
 
@@ -76,37 +66,30 @@ public class UserCommandServiceImpl implements UserCommandService {
             user.setAge(userUpdateRequest.age());
         }
 
-        return new UserUpdateResponse(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getAge());
+        return UserResponse.from(user);
     }
 
     @Override
     @Transactional
-    public UserDeleteResponse deleteUser(UUID id) {
+    public UserResponse deleteUser(UUID id) {
 
         User user = userRepository.findById(id).orElseThrow(UserIdNotFound::new);
+
+        UserResponse deleted = UserResponse.from(user);
 
         userRepository.delete(user);
 
-        return new UserDeleteResponse(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail());
+        return deleted;
     }
 
     @Override
     @Transactional
-    public ChangePasswordResponse changePassword(UUID id, ChangePasswordRequest changePasswordRequest) {
+    public UserResponse changePassword(UUID id, ChangePasswordRequest changePasswordRequest) {
 
         User user = userRepository.findById(id).orElseThrow(UserIdNotFound::new);
 
-        int updatedRows = userRepository.updatePasswordByEmail(user.getEmail(), changePasswordRequest.newPassword());
+        userRepository.updatePasswordByEmail(user.getEmail(), changePasswordRequest.newPassword());
 
-        return new ChangePasswordResponse(id, user.getEmail(), updatedRows);
+        return UserResponse.from(user);
     }
 }
